@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MovieDB — Genre & Language Filter</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#0f0f1a;color:#e0e0e0;min-height:100vh}
+
+/* HEADER */
+.header{background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);padding:22px 32px;display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #e94560;position:sticky;top:0;z-index:100}
+.logo{font-size:1.8rem;font-weight:800;color:#e94560;letter-spacing:2px}
+.logo span{color:#fff}
+.header-stats{color:#aaa;font-size:0.85rem}
+.header-stats b{color:#e94560;font-size:1rem}
+
+/* LAYOUT */
+.layout{display:flex;min-height:calc(100vh - 66px)}
+
+/* SIDEBAR */
+.sidebar{width:260px;min-width:260px;background:#12122a;padding:20px 16px;border-right:1px solid #1e1e3a;overflow-y:auto;max-height:calc(100vh - 66px);position:sticky;top:66px}
+.sidebar-section{margin-bottom:20px}
+.sidebar-title{font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:#e94560;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e1e3a}
+.filter-chip{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;border-radius:6px;cursor:pointer;transition:background .15s;margin-bottom:3px;user-select:none}
+.filter-chip:hover{background:#1e1e3a}
+.filter-chip.active{background:#e94560;color:#fff}
+.filter-chip input{display:none}
+.chip-label{font-size:0.88rem}
+.chip-count{font-size:0.72rem;background:rgba(255,255,255,0.1);padding:2px 7px;border-radius:10px;min-width:26px;text-align:center}
+.filter-chip.active .chip-count{background:rgba(255,255,255,0.25)}
+.range-row{display:flex;gap:8px;margin-bottom:8px}
+.range-row input{flex:1;padding:6px 10px;background:#1e1e3a;border:1px solid #2a2a4a;border-radius:6px;color:#e0e0e0;font-size:0.82rem;outline:none}
+.range-row input:focus{border-color:#e94560}
+.clear-btn{width:100%;padding:9px;background:transparent;border:1px solid #e94560;color:#e94560;border-radius:7px;cursor:pointer;font-size:0.88rem;margin-top:4px;transition:all .2s}
+.clear-btn:hover{background:#e94560;color:#fff}
+
+/* MAIN */
+.main{flex:1;padding:22px 26px;overflow-y:auto}
+.toolbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.result-info{font-size:0.9rem;color:#aaa}
+.result-info b{color:#e94560;font-size:1.05rem}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.search-input{padding:8px 14px;background:#12122a;border:1px solid #2a2a4a;color:#e0e0e0;border-radius:7px;font-size:0.88rem;width:200px;outline:none}
+.search-input:focus{border-color:#e94560}
+.sort-select{padding:8px 12px;background:#12122a;border:1px solid #2a2a4a;color:#e0e0e0;border-radius:7px;font-size:0.85rem;cursor:pointer;outline:none}
+.sort-select:focus{border-color:#e94560}
+
+/* GRID */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.card{background:#12122a;border-radius:12px;overflow:hidden;border:1px solid #1e1e3a;transition:transform .2s,border-color .2s,box-shadow .2s;cursor:pointer}
+.card:hover{transform:translateY(-5px);border-color:#e94560;box-shadow:0 8px 30px rgba(233,69,96,0.15)}
+.card-banner{height:130px;display:flex;align-items:center;justify-content:center;font-size:3.5rem;background:linear-gradient(135deg,#16213e,#0f3460)}
+.card-body{padding:13px}
+.card-title{font-size:0.9rem;font-weight:600;color:#fff;margin-bottom:7px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.card-year{font-size:0.78rem;color:#888}
+.rating-badge{padding:2px 8px;border-radius:4px;font-size:0.78rem;font-weight:700;color:#fff}
+.card-lang{font-size:0.75rem;color:#999;margin-bottom:8px}
+.tags{display:flex;flex-wrap:wrap;gap:4px}
+.tag{background:#1e1e3a;color:#aaa;font-size:0.68rem;padding:2px 7px;border-radius:10px}
+
+/* PAGINATION */
+.pagination{display:flex;justify-content:center;align-items:center;gap:6px;margin-top:28px;flex-wrap:wrap;padding-bottom:20px}
+.page-btn{padding:7px 13px;background:#12122a;border:1px solid #2a2a4a;color:#e0e0e0;border-radius:6px;cursor:pointer;font-size:0.83rem;transition:all .2s;min-width:38px;text-align:center}
+.page-btn:hover{background:#e94560;border-color:#e94560;color:#fff}
+.page-btn.active{background:#e94560;border-color:#e94560;color:#fff;font-weight:700}
+.page-btn:disabled{opacity:.35;cursor:not-allowed}
+.page-sep{color:#555;padding:0 4px}
+
+/* LOADING / EMPTY */
+.loading{text-align:center;padding:60px;color:#555;font-size:1.1rem}
+.empty{text-align:center;padding:60px;color:#555}
+.empty .big{font-size:3rem;margin-bottom:12px}
+
+/* MOBILE */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">🎬 Movie<span>DB</span></div>
+  <div class="header-stats">Live API &nbsp;|&nbsp; <b id="totalCount">...</b> movies</div>
+</div>
+
+<div class="layout">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Search</div>
+      <input class="search-input" id="searchBox" placeholder="Search title..." style="width:100%" oninput="debounceSearch()">
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Genre</div>
+      <div id="genreFilters"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Language</div>
+      <div id="langFilters"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Rating</div>
+      <div class="range-row">
+        <input type="number" id="ratingMin" placeholder="Min" min="1" max="10" step="0.1" onchange="fetchMovies(1)">
+        <input type="number" id="ratingMax" placeholder="Max" min="1" max="10" step="0.1" onchange="fetchMovies(1)">
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-title">Year</div>
+      <div class="range-row">
+        <input type="number" id="yearMin" placeholder="From" min="1970" max="2024" onchange="fetchMovies(1)">
+        <input type="number" id="yearMax" placeholder="To"   min="1970" max="2024" onchange="fetchMovies(1)">
+      </div>
+    </div>
+
+    <button class="clear-btn" onclick="clearAll()">✕ Clear All Filters</button>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="toolbar">
+      <div class="result-info">Showing <b id="resultCount">...</b> movies</div>
+      <div class="controls">
+        <select class="sort-select" id="sortSelect" onchange="fetchMovies(1)">
+          <option value="-rating">Rating ↓</option>
+          <option value="rating">Rating ↑</option>
+          <option value="-release_year">Newest</option>
+          <option value="release_year">Oldest</option>
+          <option value="title">Title A→Z</option>
+          <option value="-title">Title Z→A</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="grid" id="movieGrid"><div class="loading">Loading movies...</div></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<script>
+const API = '/api';
+const EMOJIS = ['🎬','🎥','🎞','🍿','🎭','⭐','🔥','💥','🌟','🎪','🎦','🏆'];
+const FLAGS  = {en:'🇺🇸',es:'🇪🇸',fr:'🇫🇷',de:'🇩🇪',ja:'🇯🇵',ko:'🇰🇷',hi:'🇮🇳',zh:'🇨🇳',it:'🇮🇹',pt:'🇧🇷',ru:'🇷🇺',ar:'🇸🇦'};
+
+let selectedGenres = new Set();
+let selectedLangs  = new Set();
+let currentPage    = 1;
+let searchTimer    = null;
+
+// ── Bootstrap ──────────────────────────────────────────────
+async function init() {
+  const [genres, langs] = await Promise.all([
+    fetch(`${API}/genres/`).then(r=>r.json()),
+    fetch(`${API}/languages/`).then(r=>r.json()),
+  ]);
+  buildFilters('genreFilters', genres, selectedGenres, 'g');
+  buildFilters('langFilters',  langs,  selectedLangs,  'l');
+  fetchMovies(1);
+  fetchCounts();
+}
+
+function buildFilters(containerId, items, set, prefix) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(item => `
+    <div class="filter-chip" id="${prefix}chip${item.id}" onclick="toggleFilter('${prefix}',${item.id})">
+      <span class="chip-label">${prefix==='l'?(FLAGS[item.code]||'🌐')+' ':''} ${item.name}</span>
+      <span class="chip-count" id="${prefix}cnt${item.id}">-</span>
+    </div>`).join('');
+}
+
+// ── Toggle filter ───────────────────────────────────────────
+function toggleFilter(prefix, id) {
+  const set  = prefix==='g' ? selectedGenres : selectedLangs;
+  const chip = document.getElementById(`${prefix}chip${id}`);
+  if (set.has(id)) { set.delete(id); chip.classList.remove('active'); }
+  else             { set.add(id);    chip.classList.add('active'); }
+  fetchMovies(1);
+  fetchCounts();
+}
+
+// ── Build query params ──────────────────────────────────────
+function buildParams(page) {
+  const p = new URLSearchParams();
+  selectedGenres.forEach(id => p.append('genres', id));
+  selectedLangs.forEach(id  => p.append('languages', id));
+  const rMin = document.getElementById('ratingMin').value;
+  const rMax = document.getElementById('ratingMax').value;
+  const yMin = document.getElementById('yearMin').value;
+  const yMax = document.getElementById('yearMax').value;
+  const srch = document.getElementById('searchBox').value.trim();
+  const sort = document.getElementById('sortSelect').value;
+  if (rMin) p.set('rating_min', rMin);
+  if (rMax) p.set('rating_max', rMax);
+  if (yMin) p.set('year_min', yMin);
+  if (yMax) p.set('year_max', yMax);
+  if (srch) p.set('search', srch);
+  if (sort) p.set('ordering', sort);
+  p.set('page', page);
+  p.set('page_size', 20);
+  return p;
+}
+
+// ── Fetch movies ────────────────────────────────────────────
+async function fetchMovies(page) {
+  currentPage = page;
+  document.getElementById('movieGrid').innerHTML = '<div class="loading">Loading...</div>';
+  const data = await fetch(`${API}/movies/?${buildParams(page)}`).then(r=>r.json());
+  document.getElementById('totalCount').textContent  = (5000).toLocaleString();
+  document.getElementById('resultCount').textContent = data.count.toLocaleString();
+  renderGrid(data.results);
+  renderPagination(data.current_page, data.total_pages);
+}
+
+// ── Fetch filter counts ─────────────────────────────────────
+async function fetchCounts() {
+  const p = new URLSearchParams();
+  selectedGenres.forEach(id => p.append('genres', id));
+  selectedLangs.forEach(id  => p.append('languages', id));
+  const rMin = document.getElementById('ratingMin').value;
+  const rMax = document.getElementById('ratingMax').value;
+  const yMin = document.getElementById('yearMin').value;
+  const yMax = document.getElementById('yearMax').value;
+  if (rMin) p.set('rating_min', rMin);
+  if (rMax) p.set('rating_max', rMax);
+  if (yMin) p.set('year_min', yMin);
+  if (yMax) p.set('year_max', yMax);
+  const data = await fetch(`${API}/movies/filter-counts/?${p}`).then(r=>r.json());
+  data.genres.forEach(g    => { const el=document.getElementById(`gcnt${g.id}`);    if(el) el.textContent=g.count; });
+  data.languages.forEach(l => { const el=document.getElementById(`lcnt${l.id}`);    if(el) el.textContent=l.count; });
+}
+
+// ── Render movie cards ──────────────────────────────────────
+function renderGrid(movies) {
+  if (!movies.length) {
+    document.getElementById('movieGrid').innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="big">🎬</div><p>No movies match your filters</p></div>';
+    return;
+  }
+  const ratingColor = r => r>=8?'#4caf50':r>=6?'#ff9800':'#e94560';
+  document.getElementById('movieGrid').innerHTML = movies.map((m,i) => {
+    const emoji = EMOJIS[(m.id+i)%EMOJIS.length];
+    const flag  = m.language ? (FLAGS[m.language.code]||'🌐') : '';
+    const lang  = m.language ? m.language.name : '';
+    const tags  = m.genres.slice(0,3).map(g=>`<span class="tag">${g.name}</span>`).join('');
+    const r     = parseFloat(m.rating);
+    return `
+    <div class="card">
+      <div class="card-banner">${emoji}</div>
+      <div class="card-body">
+        <div class="card-title">${m.title}</div>
+        <div class="card-row">
+          <span class="card-year">${m.release_year}</span>
+          <span class="rating-badge" style="background:${ratingColor(r)}">⭐ ${m.rating}</span>
+        </div>
+        <div class="card-lang">${flag} ${lang}</div>
+        <div class="tags">${tags}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Render pagination ───────────────────────────────────────
+function renderPagination(current, total) {
+  if (total<=1) { document.getElementById('pagination').innerHTML=''; return; }
+  const pages = [];
+  for (let i=1;i<=total;i++) {
+    if (i===1||i===total||Math.abs(i-current)<=2) pages.push(i);
+    else if (pages[pages.length-1]!=='…') pages.push('…');
+  }
+  let html = `<button class="page-btn" onclick="fetchMovies(${current-1})" ${current===1?'disabled':''}>‹ Prev</button>`;
+  pages.forEach(p => {
+    if (p==='…') html += `<span class="page-sep">…</span>`;
+    else html += `<button class="page-btn ${p===current?'active':''}" onclick="fetchMovies(${p})">${p}</button>`;
+  });
+  html += `<button class="page-btn" onclick="fetchMovies(${current+1})" ${current===total?'disabled':''}>Next ›</button>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+// ── Search debounce ─────────────────────────────────────────
+function debounceSearch() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(()=>{ fetchMovies(1); fetchCounts(); }, 400);
+}
+
+// ── Clear all ───────────────────────────────────────────────
+function clearAll() {
+  selectedGenres.clear(); selectedLangs.clear();
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  ['ratingMin','ratingMax','yearMin','yearMax'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('searchBox').value='';
+  document.getElementById('sortSelect').value='-rating';
+  fetchMovies(1); fetchCounts();
+}
+
+init();
+</script>
+</body>
+</html>

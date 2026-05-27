@@ -17,31 +17,11 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from django.http import JsonResponse
+from django.shortcuts import render
 
 
 def home(request):
-    return JsonResponse({
-        "message": "Welcome to MovieDB API",
-        "endpoints": {
-            "movies": "/api/movies/",
-            "movie_detail": "/api/movies/{id}/",
-            "filter_counts": "/api/movies/filter-counts/",
-            "genres": "/api/genres/",
-            "languages": "/api/languages/",
-        },
-        "filters": {
-            "genres": "?genres=1&genres=2  (multi-select, OR logic)",
-            "languages": "?languages=1&languages=2",
-            "rating": "?rating_min=7.0&rating_max=10.0",
-            "year": "?year_min=2000&year_max=2024",
-            "search": "?search=dark",
-            "sort": "?ordering=-rating  (title, release_year, rating)",
-            "pagination": "?page=1&page_size=20",
-        },
-        "example": "/api/movies/?genres=1&languages=1&ordering=-rating&page_size=5",
-        "total_movies": 300,
-    })
+    return render(request, "movies/index.html")
 
 
 urlpatterns = [
