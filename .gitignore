@@ -1,6 +1,5 @@
 __pycache__/
 *.pyc
 *.pyo
-db.sqlite3
-*.sqlite3
+# db.sqlite3 intentionally kept for Vercel deployment
 .env
