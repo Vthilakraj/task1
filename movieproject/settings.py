@@ -8,6 +8,7 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-(*-)ecpf(o$o-!@@#0paj
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = ["*"]
+CSRF_TRUSTED_ORIGINS = ["https://*.vercel.app"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
