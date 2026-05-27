@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MovieDB - Genre & Language Filter</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f0f1a; color: #e0e0e0; }
+
+  .header {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    padding: 30px 40px;
+    border-bottom: 2px solid #e94560;
+  }
+  .header h1 { font-size: 2.2rem; color: #e94560; letter-spacing: 2px; }
+  .header p { color: #aaa; margin-top: 6px; font-size: 0.95rem; }
+
+  .container { display: flex; min-height: calc(100vh - 100px); }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px; min-width: 280px;
+    background: #1a1a2e;
+    padding: 24px 20px;
+    border-right: 1px solid #2a2a4a;
+    overflow-y: auto;
+  }
+  .sidebar h3 {
+    color: #e94560; font-size: 0.75rem; letter-spacing: 2px;
+    text-transform: uppercase; margin-bottom: 12px; margin-top: 20px;
+  }
+  .sidebar h3:first-child { margin-top: 0; }
+
+  .filter-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 7px 10px; border-radius: 6px; cursor: pointer;
+    transition: background 0.2s; margin-bottom: 4px;
+  }
+  .filter-item:hover { background: #2a2a4a; }
+  .filter-item.active { background: #e94560; color: white; }
+  .filter-item label { cursor: pointer; font-size: 0.9rem; flex: 1; }
+  .filter-item input { margin-right: 8px; accent-color: #e94560; cursor: pointer; }
+  .badge {
+    background: #2a2a4a; color: #aaa; font-size: 0.72rem;
+    padding: 2px 7px; border-radius: 10px; min-width: 28px; text-align: center;
+  }
+  .filter-item.active .badge { background: rgba(255,255,255,0.2); color: white; }
+
+  .range-group { margin-bottom: 10px; }
+  .range-group label { font-size: 0.82rem; color: #aaa; display: block; margin-bottom: 6px; }
+  .range-inputs { display: flex; gap: 8px; }
+  .range-inputs input {
+    width: 100%; padding: 6px 10px; background: #2a2a4a;
+    border: 1px solid #3a3a5a; border-radius: 6px; color: #e0e0e0;
+    font-size: 0.85rem; outline: none;
+  }
+  .range-inputs input:focus { border-color: #e94560; }
+
+  .btn-clear {
+    width: 100%; margin-top: 16px; padding: 10px;
+    background: transparent; border: 1px solid #e94560;
+    color: #e94560; border-radius: 8px; cursor: pointer;
+    font-size: 0.9rem; transition: all 0.2s;
+  }
+  .btn-clear:hover { background: #e94560; color: white; }
+
+  /* MAIN */
+  .main { flex: 1; padding: 24px 28px; overflow-y: auto; }
+
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .result-count { color: #aaa; font-size: 0.9rem; }
+  .result-count span { color: #e94560; font-weight: bold; font-size: 1.1rem; }
+
+  .sort-bar { display: flex; gap: 8px; align-items: center; }
+  .sort-bar label { font-size: 0.82rem; color: #aaa; }
+  .sort-bar select {
+    padding: 7px 12px; background: #1a1a2e; border: 1px solid #3a3a5a;
+    color: #e0e0e0; border-radius: 6px; cursor: pointer; font-size: 0.85rem;
+    outline: none;
+  }
+  .sort-bar select:focus { border-color: #e94560; }
+
+  .search-box {
+    padding: 8px 14px; background: #1a1a2e; border: 1px solid #3a3a5a;
+    color: #e0e0e0; border-radius: 6px; font-size: 0.88rem; width: 220px;
+    outline: none;
+  }
+  .search-box:focus { border-color: #e94560; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 18px;
+  }
+
+  .card {
+    background: #1a1a2e; border-radius: 12px; overflow: hidden;
+    border: 1px solid #2a2a4a; transition: transform 0.2s, border-color 0.2s;
+    cursor: pointer;
+  }
+  .card:hover { transform: translateY(-4px); border-color: #e94560; }
+
+  .card-poster {
+    height: 140px; background: linear-gradient(135deg, #16213e, #0f3460);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem;
+  }
+  .card-body { padding: 14px; }
+  .card-title { font-size: 0.92rem; font-weight: 600; margin-bottom: 8px; line-height: 1.3; color: #fff; }
+  .card-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .card-year { font-size: 0.8rem; color: #888; }
+  .rating {
+    background: #e94560; color: white; padding: 2px 8px;
+    border-radius: 4px; font-size: 0.8rem; font-weight: bold;
+  }
+  .card-lang {
+    font-size: 0.75rem; color: #aaa; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .lang-flag { font-size: 0.85rem; }
+  .genres-row { display: flex; flex-wrap: wrap; gap: 4px; }
+  .genre-tag {
+    background: #2a2a4a; color: #aaa; font-size: 0.68rem;
+    padding: 2px 7px; border-radius: 10px;
+  }
+
+  .pagination {
+    display: flex; justify-content: center; align-items: center;
+    gap: 8px; margin-top: 30px; flex-wrap: wrap;
+  }
+  .page-btn {
+    padding: 8px 14px; background: #1a1a2e; border: 1px solid #3a3a5a;
+    color: #e0e0e0; border-radius: 6px; cursor: pointer;
+    font-size: 0.85rem; transition: all 0.2s;
+  }
+  .page-btn:hover, .page-btn.active { background: #e94560; border-color: #e94560; color: white; }
+  .page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .page-info { color: #aaa; font-size: 0.85rem; padding: 8px 14px; }
+
+  .no-results {
+    text-align: center; padding: 60px 20px; color: #555;
+  }
+  .no-results .icon { font-size: 3rem; margin-bottom: 12px; }
+
+  .api-badge {
+    position: fixed; bottom: 20px; right: 20px;
+    background: #e94560; color: white; padding: 10px 18px;
+    border-radius: 20px; font-size: 0.8rem; font-weight: bold;
+    box-shadow: 0 4px 20px rgba(233,69,96,0.4);
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎬 MovieDB</h1>
+  <p>Scalable Genre & Language Filtering — Django REST API &nbsp;|&nbsp; <strong style="color:#e94560">5,000</strong> movies in catalog</p>
+</div>
+
+<div class="container">
+  <div class="sidebar">
+    <input class="search-box" id="searchInput" placeholder="🔍 Search movies..." style="width:100%;margin-bottom:16px" oninput="applyFilters()">
+
+    <h3>Genre</h3>
+    <div id="genreList"></div>
+
+    <h3>Language</h3>
+    <div id="langList"></div>
+
+    <h3>Rating</h3>
+    <div class="range-group">
+      <div class="range-inputs">
+        <input type="number" id="ratingMin" placeholder="Min" min="1" max="10" step="0.1" oninput="applyFilters()">
+        <input type="number" id="ratingMax" placeholder="Max" min="1" max="10" step="0.1" oninput="applyFilters()">
+      </div>
+    </div>
+
+    <h3>Year</h3>
+    <div class="range-group">
+      <div class="range-inputs">
+        <input type="number" id="yearMin" placeholder="From" min="1970" max="2024" oninput="applyFilters()">
+        <input type="number" id="yearMax" placeholder="To" min="1970" max="2024" oninput="applyFilters()">
+      </div>
+    </div>
+
+    <button class="btn-clear" onclick="clearFilters()">✕ Clear All Filters</button>
+  </div>
+
+  <div class="main">
+    <div class="toolbar">
+      <div class="result-count">Showing <span id="resultCount">0</span> movies</div>
+      <div class="sort-bar">
+        <label>Sort by:</label>
+        <select id="sortSelect" onchange="applyFilters()">
+          <option value="rating_desc">Rating (High→Low)</option>
+          <option value="rating_asc">Rating (Low→High)</option>
+          <option value="year_desc">Year (Newest)</option>
+          <option value="year_asc">Year (Oldest)</option>
+          <option value="title_asc">Title (A→Z)</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid" id="movieGrid"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>
+
+<div class="api-badge">⚡ Django REST API</div>
+
+<script>
+const ALL_MOVIES = [{"id": 4936, "title": "Lost City Reborn 4936", "release_year": 2008, "rating": "10.0", "genres": [{"id": 6, "name": "Crime"}, {"id": 12, "name": "Mystery"}], "language": {"id": 4, "name": "German", "code": "de"}, "poster_url": ""}, {"id": 4780, "title": "Last Knight Awakens 4780", "release_year": 2020, "rating": "10.0", "genres": [{"id": 7, "name": "Documentary"}, {"id": 14, "name": "Sci-Fi"}, {"id": 15, "name": "Thriller"}], "language": {"id": 3, "name": "French", "code": "fr"}, "poster_url": ""}, {"id": 4560, "title": "Dark Knight Reborn 4560", "release_year": 2012, "rating": "10.0", "genres": [{"id": 2, "name": "Adventure"}, {"id": 3, "name": "Animation"}, {"id": 13, "name": "Romance"}, {"id": 17, "name": "Western"}], "language": {"id": 11, "name": "Russian", "code": "ru"}, "poster_url": ""}, {"id": 4406, "title": "Broken Night Awakens 4406", "release_year": 2024, "rating": "10.0", "genres": [{"id": 6, "name": "Crime"}], "language": {"id": 1, "name": "English", "code": "en"}, "poster_url": ""}, {"id": 4249, "title": "Dark Echo Legacy 4249", "release_year": 1981, "rating": "10.0", "genres": [{"id": 2, "name": "Adventure"}, {"id": 4, "name": "Biography"}, {"id": 19, "name": "Sport"}, {"id": 16, "name": "War"}], "language": {"id": 3, "name": "French", "code": "fr"}, "poster_url": ""}, {"id": 3970, "title": "Hidden Echo Origins 3970", "release_year": 1971, "rating": "10.0", "genres": [{"id": 2, "name": "Adventure"}, {"id": 4, "name": "Biography"}, {"id": 17, "name": "Western"}], "language": {"id": 5, "name": "Japanese", "code": "ja"}, "poster_url": ""}, {"id": 3947, "title": "Broken Mountain Rising 3947", "release_year": 2006, "rating": "10.0", "genres": [{"id": 7, "name": "Documentary"}, {"id": 10, "name": "Horror"}, {"id": 11, "name": "Musical"}, {"id": 15, "name": "Thriller"}], "language": {"id": 3, "name": "French", "code": "fr"}, "poster_url": ""}, {"id": 3773, "title": "First Knight Ends 3773", "release_year": 2011, "rating": "10.0", "genres": [{"id": 2, "name": "Adventure"}], "language": {"id": 6, "name": "Korean", "code": "ko"}, "poster_url": ""}, {"id": 3731, "title": "Last Storm Ends 3731", "release_year": 2001, "rating": "10.0", "genres": [{"id": 16, "name": "War"}], "language": {"id": 1, "name": "English", "code": "en"}, "poster_url": ""}, {"id": 3512, "title": "A Mountain Awakens 3512", "release_year": 1992, "rating": "10.0", "genres": [{"id": 17, "name": "Western"}], "language": {"id": 12, "name": "Arabic", "code": "ar"}, "poster_url": ""}, {"id": 3069, "title": "Lost Shadow Falls 3069", "release_year": 1988, "rating": "10.0", "genres": [{"id": 13, "name": "Romance"}, {"id": 15, "name": "Thriller"}], "language": {"id": 3, "name": "French", "code": "fr"}, "poster_url": ""}, {"id": 3014, "title": "Silent Legend Chronicles 3014", "release_year": 2016, "rating": "10.0", "genres": [{"id": 1, "name": "Action"}, {"id": 18, "name": "Family"}, {"id": 12, "name": "Mystery"}, {"id": 17, "name": "Western"}], "language": {"id": 5, "name": "Japanese", "code": "ja"}, "poster_url": ""}, {"id": 2857, "title": "Dark Mountain Legacy 2857", "release_year": 2005, "rating": "10.0", "genres": [{"id": 9, "name": "Fantasy"}, {"id": 13, "name": "Romance"}], "language": {"id": 2, "name": "Spanish", "code": "es"}, "poster_url": ""}, {"id": 2805, "title": "Lost Dawn Rising 2805", "release_year": 2022, "rating": "10.0", "genres": [{"id": 9, "name": "Fantasy"}, {"id": 20, "name": "History"}, {"id": 10, "name": "Horror"}, {"id": 13, "name": "Romance"}], "language": {"id": 4, "name": "German", "code": "de"}, "poster_url": ""}, {"id": 2644, "title": "Last City Legacy 2644", "release_year": 1978, "rating": "10.0", "genres": [{"id": 8, "name": "Drama"}, {"id": 20, "name": "History"}, {"id": 13, "name": "Romance"}, {"id": 16, "name": "War"}], "language": {"id": 4, "name": "German", "code": "de"}, "poster_url": ""}, {"id": 2557, "title": "Final Shadow Awakens 2557", "release_year": 1988, "rating": "10.0", "genres": [{"id": 12, "name": "Mystery"}], "language": {"id": 3, "name": "French", "code": "fr"}, "poster_url": ""}, {"id": 2504, "title": "Silent Ocean Awakens 2504", "release_year": 1979, "rating": "10.0", "genres": [{"id": 3, "name": "Animation"}], "language": {"id": 11, "name": "Russian", "code": "ru"}, "poster_url": ""}, {"id": 2502, "title": "Broken Ocean Ends 2502", "release_year": 1987, "rating": "10.0", "genres": [{"id": 3, "name": "Animation"}, {"id": 9, "name": "Fantasy"}], "language": {"id": 1, "name": "English", "code": "en"}, "poster_url": ""}, {"id": 2407, "title": "The Legend Chronicles 2407", "release_year": 2024, "rating": "10.0", "genres": [{"id": 13, "name": "Romance"}, {"id": 15, "name": "Thriller"}], "language": {"id": 5, "name": "Japanese", "code": "ja"}, "poster_url": ""}, {"id": 2112, "title": "Dark Star Chronicles 2112", "release_year": 2012, "rating": "10.0", "genres": [{"id": 1, "name": "Action"}, {"id": 6, "name": "Crime"}, {"id": 7, "name": "Documentary"}, {"id": 10, "name": "Horror"}], "language": {"id": 6, "name": "Korean", "code": "ko"}, "poster_url": ""}];
+const ALL_GENRES = [{"id": 1, "name": "Action"}, {"id": 2, "name": "Adventure"}, {"id": 3, "name": "Animation"}, {"id": 4, "name": "Biography"}, {"id": 5, "name": "Comedy"}, {"id": 6, "name": "Crime"}, {"id": 7, "name": "Documentary"}, {"id": 8, "name": "Drama"}, {"id": 18, "name": "Family"}, {"id": 9, "name": "Fantasy"}, {"id": 20, "name": "History"}, {"id": 10, "name": "Horror"}, {"id": 11, "name": "Musical"}, {"id": 12, "name": "Mystery"}, {"id": 13, "name": "Romance"}, {"id": 14, "name": "Sci-Fi"}, {"id": 19, "name": "Sport"}, {"id": 15, "name": "Thriller"}, {"id": 16, "name": "War"}, {"id": 17, "name": "Western"}];
+const ALL_LANGUAGES = [{"id": 12, "name": "Arabic", "code": "ar"}, {"id": 1, "name": "English", "code": "en"}, {"id": 3, "name": "French", "code": "fr"}, {"id": 4, "name": "German", "code": "de"}, {"id": 7, "name": "Hindi", "code": "hi"}, {"id": 9, "name": "Italian", "code": "it"}, {"id": 5, "name": "Japanese", "code": "ja"}, {"id": 6, "name": "Korean", "code": "ko"}, {"id": 8, "name": "Mandarin", "code": "zh"}, {"id": 10, "name": "Portuguese", "code": "pt"}, {"id": 11, "name": "Russian", "code": "ru"}, {"id": 2, "name": "Spanish", "code": "es"}];
+const COUNTS = {"genres": [{"id": 1, "name": "Action", "count": 623}, {"id": 2, "name": "Adventure", "count": 593}, {"id": 3, "name": "Animation", "count": 643}, {"id": 4, "name": "Biography", "count": 562}, {"id": 5, "name": "Comedy", "count": 629}, {"id": 6, "name": "Crime", "count": 640}, {"id": 7, "name": "Documentary", "count": 609}, {"id": 8, "name": "Drama", "count": 647}, {"id": 18, "name": "Family", "count": 625}, {"id": 9, "name": "Fantasy", "count": 639}, {"id": 20, "name": "History", "count": 598}, {"id": 10, "name": "Horror", "count": 608}, {"id": 11, "name": "Musical", "count": 590}, {"id": 12, "name": "Mystery", "count": 648}, {"id": 13, "name": "Romance", "count": 610}, {"id": 14, "name": "Sci-Fi", "count": 620}, {"id": 19, "name": "Sport", "count": 636}, {"id": 15, "name": "Thriller", "count": 649}, {"id": 16, "name": "War", "count": 612}, {"id": 17, "name": "Western", "count": 635}], "languages": [{"id": 12, "name": "Arabic", "code": "ar", "count": 425}, {"id": 1, "name": "English", "code": "en", "count": 408}, {"id": 3, "name": "French", "code": "fr", "count": 458}, {"id": 4, "name": "German", "code": "de", "count": 409}, {"id": 7, "name": "Hindi", "code": "hi", "count": 390}, {"id": 9, "name": "Italian", "code": "it", "count": 426}, {"id": 5, "name": "Japanese", "code": "ja", "count": 403}, {"id": 6, "name": "Korean", "code": "ko", "count": 426}, {"id": 8, "name": "Mandarin", "code": "zh", "count": 441}, {"id": 10, "name": "Portuguese", "code": "pt", "count": 409}, {"id": 11, "name": "Russian", "code": "ru", "count": 387}, {"id": 2, "name": "Spanish", "code": "es", "count": 418}]};
+
+const EMOJI_MAP = ['🎬','🎥','🎞','🍿','🎭','⭐','🔥','💥','🌟','🎪'];
+const LANG_FLAGS = {
+  en:'🇺🇸', es:'🇪🇸', fr:'🇫🇷', de:'🇩🇪', ja:'🇯🇵',
+  ko:'🇰🇷', hi:'🇮🇳', zh:'🇨🇳', it:'🇮🇹', pt:'🇧🇷', ru:'🇷🇺', ar:'🇸🇦'
+};
+
+let currentPage = 1;
+const PAGE_SIZE = 20;
+let filtered = [...ALL_MOVIES];
+
+function buildSidebar() {
+  const genreDiv = document.getElementById('genreList');
+  const langDiv = document.getElementById('langList');
+
+  ALL_GENRES.forEach(g => {
+    const count = (COUNTS.genres.find(x => x.id === g.id) || {}).count || 0;
+    genreDiv.innerHTML += `
+      <div class="filter-item" id="genre-item-${g.id}" onclick="toggleFilter('genre',${g.id})">
+        <input type="checkbox" id="genre-${g.id}" value="${g.id}">
+        <label for="genre-${g.id}">${g.name}</label>
+        <span class="badge" id="genre-count-${g.id}">${count}</span>
+      </div>`;
+  });
+
+  ALL_LANGUAGES.forEach(l => {
+    const count = (COUNTS.languages.find(x => x.id === l.id) || {}).count || 0;
+    langDiv.innerHTML += `
+      <div class="filter-item" id="lang-item-${l.id}" onclick="toggleFilter('lang',${l.id})">
+        <input type="checkbox" id="lang-${l.id}" value="${l.id}">
+        <label for="lang-${l.id}">${LANG_FLAGS[l.code] || ''} ${l.name}</label>
+        <span class="badge" id="lang-count-${l.id}">${count}</span>
+      </div>`;
+  });
+}
+
+function toggleFilter(type, id) {
+  const cb = document.getElementById(`${type==='genre'?'genre':'lang'}-${id}`);
+  cb.checked = !cb.checked;
+  const item = document.getElementById(`${type==='genre'?'genre':'lang'}-item-${id}`);
+  item.classList.toggle('active', cb.checked);
+  currentPage = 1;
+  applyFilters();
+}
+
+function getSelectedIds(type) {
+  const prefix = type === 'genre' ? 'genre-' : 'lang-';
+  return [...document.querySelectorAll(`input[id^="${prefix}"]`)]
+    .filter(cb => cb.checked).map(cb => parseInt(cb.value));
+}
+
+function applyFilters() {
+  const selectedGenres = getSelectedIds('genre');
+  const selectedLangs = getSelectedIds('lang');
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const ratingMin = parseFloat(document.getElementById('ratingMin').value) || 0;
+  const ratingMax = parseFloat(document.getElementById('ratingMax').value) || 99;
+  const yearMin = parseInt(document.getElementById('yearMin').value) || 0;
+  const yearMax = parseInt(document.getElementById('yearMax').value) || 9999;
+  const sort = document.getElementById('sortSelect').value;
+
+  filtered = ALL_MOVIES.filter(m => {
+    if (search && !m.title.toLowerCase().includes(search)) return false;
+    if (selectedGenres.length && !m.genres.some(g => selectedGenres.includes(g.id))) return false;
+    if (selectedLangs.length && (!m.language || !selectedLangs.includes(m.language.id))) return false;
+    if (parseFloat(m.rating) < ratingMin || parseFloat(m.rating) > ratingMax) return false;
+    if (m.release_year < yearMin || m.release_year > yearMax) return false;
+    return true;
+  });
+
+  filtered.sort((a, b) => {
+    if (sort === 'rating_desc') return parseFloat(b.rating) - parseFloat(a.rating);
+    if (sort === 'rating_asc') return parseFloat(a.rating) - parseFloat(b.rating);
+    if (sort === 'year_desc') return b.release_year - a.release_year;
+    if (sort === 'year_asc') return a.release_year - b.release_year;
+    if (sort === 'title_asc') return a.title.localeCompare(b.title);
+    return 0;
+  });
+
+  updateCounts(selectedGenres, selectedLangs);
+  renderPage();
+}
+
+function updateCounts(selectedGenres, selectedLangs) {
+  ALL_GENRES.forEach(g => {
+    let subset = ALL_MOVIES;
+    if (selectedLangs.length) subset = subset.filter(m => m.language && selectedLangs.includes(m.language.id));
+    const c = subset.filter(m => m.genres.some(x => x.id === g.id)).length;
+    const el = document.getElementById(`genre-count-${g.id}`);
+    if (el) el.textContent = c;
+  });
+  ALL_LANGUAGES.forEach(l => {
+    let subset = ALL_MOVIES;
+    if (selectedGenres.length) subset = subset.filter(m => m.genres.some(g => selectedGenres.includes(g.id)));
+    const c = subset.filter(m => m.language && m.language.id === l.id).length;
+    const el = document.getElementById(`lang-count-${l.id}`);
+    if (el) el.textContent = c;
+  });
+}
+
+function renderPage() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const page = filtered.slice(start, start + PAGE_SIZE);
+  const grid = document.getElementById('movieGrid');
+  document.getElementById('resultCount').textContent = filtered.length.toLocaleString();
+
+  if (!page.length) {
+    grid.innerHTML = `<div class="no-results" style="grid-column:1/-1"><div class="icon">🎬</div><p>No movies match your filters</p></div>`;
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  grid.innerHTML = page.map((m, i) => {
+    const emoji = EMOJI_MAP[(m.id || i) % EMOJI_MAP.length];
+    const flag = m.language ? (LANG_FLAGS[m.language.code] || '🌐') : '🌐';
+    const langName = m.language ? m.language.name : 'Unknown';
+    const genreTags = m.genres.slice(0, 3).map(g => `<span class="genre-tag">${g.name}</span>`).join('');
+    const ratingNum = parseFloat(m.rating);
+    const ratingColor = ratingNum >= 8 ? '#4caf50' : ratingNum >= 6 ? '#ff9800' : '#e94560';
+    return `
+      <div class="card">
+        <div class="card-poster">${emoji}</div>
+        <div class="card-body">
+          <div class="card-title">${m.title}</div>
+          <div class="card-meta">
+            <span class="card-year">${m.release_year}</span>
+            <span class="rating" style="background:${ratingColor}">⭐ ${m.rating}</span>
+          </div>
+          <div class="card-lang">${flag} ${langName}</div>
+          <div class="genres-row">${genreTags}</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  renderPagination();
+}
+
+function renderPagination() {
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  if (total <= 1) { document.getElementById('pagination').innerHTML = ''; return; }
+
+  let html = `<button class="page-btn" onclick="goPage(${currentPage-1})" ${currentPage===1?'disabled':''}>← Prev</button>`;
+  const pages = [];
+  for (let i = 1; i <= total; i++) {
+    if (i === 1 || i === total || (i >= currentPage-2 && i <= currentPage+2)) pages.push(i);
+    else if (pages[pages.length-1] !== '...') pages.push('...');
+  }
+  pages.forEach(p => {
+    if (p === '...') html += `<span class="page-info">...</span>`;
+    else html += `<button class="page-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
+  });
+  html += `<button class="page-btn" onclick="goPage(${currentPage+1})" ${currentPage===total?'disabled':''}>Next →</button>`;
+  html += `<span class="page-info">Page ${currentPage} of ${total}</span>`;
+  document.getElementById('pagination').innerHTML = html;
+}
+
+function goPage(p) {
+  const total = Math.ceil(filtered.length / PAGE_SIZE);
+  if (p < 1 || p > total) return;
+  currentPage = p;
+  renderPage();
+  window.scrollTo(0, 0);
+}
+
+function clearFilters() {
+  document.querySelectorAll('.filter-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('input[type=checkbox]').forEach(cb => cb.checked = false);
+  document.getElementById('ratingMin').value = '';
+  document.getElementById('ratingMax').value = '';
+  document.getElementById('yearMin').value = '';
+  document.getElementById('yearMax').value = '';
+  document.getElementById('searchInput').value = '';
+  currentPage = 1;
+  applyFilters();
+}
+
+buildSidebar();
+applyFilters();
+</script>
+</body>
+</html>
